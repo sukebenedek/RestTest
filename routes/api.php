@@ -1,7 +1,6 @@
 <?php
 
-use App\Http\Controllers\ProductController;
-use App\Http\Controllers\TaskController;
+use App\Http\Controllers\ShopController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -9,20 +8,11 @@ use Illuminate\Support\Facades\Route;
 //     return $request->user();
 // })->middleware('auth:sanctum');
 
-Route::apiResource('tasks', TaskController::class)->missing(
-    function(Request $request) {
-        return response()->json(
-            ['message'=>'A megadott azonosítójú feladat nem található!'],
-            404
-        );
-    }
-);
+Route::get('/category',[ShopController::class,'allCategory']);
+Route::get('/product',[ShopController::class,'allProduct']);
+Route::get('/categoryWithProduct',[ShopController::class,'categoryWithProduct']);
 
-Route::apiResource('products', ProductController::class)->missing(
-    function(Request $request) {
-        return response()->json(
-            ['message'=>'A megadott azonosítójú feladat nem található!'],
-            404
-        );
-    }
-);
+Route::get('/filterProductByCategory/{id}',[ShopController::class,'filterProductByCategory']);
+Route::get('/filterProductByName/{name}',[ShopController::class,'filterProductByName']);
+
+Route::get('/listOrders/{id?}',[ShopController::class,'listOrders']);
