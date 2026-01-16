@@ -8,6 +8,93 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 uses(TestCase::class, RefreshDatabase::class);
 
 // ==========================================
+// 1. VÉGPONT: GET /api/films (Index - Lista)
+// ==========================================
+
+test('GET index returns status 200 and a list of films', function () {
+    // Factory-val létrehozunk 3 filmet
+    Film::factory()->count(3)->create();
+
+    $response = $this->getJson('/api/films');
+
+    $response->assertStatus(200)
+             ->assertJsonCount(3);
+});
+
+test('GET index returns correct data structure', function () {
+    Film::factory()->create([
+        'title' => 'Egyedi Cím',
+    ]);
+
+    $response = $this->getJson('/api/films');
+
+    $response->assertJsonFragment(['title' => 'Egyedi Cím']);
+});
+
+test('GET index returns empty list when database is empty', function () {
+    // Nem hozunk létre semmit
+
+    $response = $this->getJson('/api/films');
+
+    $response->assertStatus(200)
+             ->assertJsonCount(0);
+});
+
+test('GET index headers are correct', function () {
+    Film::factory()->create();
+
+    $response = $this->getJson('/api/films');
+
+    $response->assertHeader('Content-Type', 'application/json');
+});
+
+// ==========================================
+// 2. VÉGPONT: POST /api/films (Store - Létrehozás)
+// ==========================================
+
+test('POST store creates a film successfully', function () {
+    // Itt 'make'-et használunk, ami csak memóriában hozza létre az adatot, nem menti el (azt a POST teszi meg)
+    $filmData = Film::factory()->make()->toArray();
+
+    $response = $this->postJson('/api/films', $filmData);
+
+    $response->assertStatus(201)
+             ->assertJsonFragment(['title' => $filmData['title']]);
+
+    $this->assertDatabaseHas('films', ['title' => $filmData['title']]);
+});
+
+test('POST store fails without required fields', function () {
+    $response = $this->postJson('/api/films', [
+        'director' => 'Hiányzik a Cím',
+    ]);
+
+    $response->assertStatus(422)
+             ->assertJsonValidationErrors(['title']);
+});
+
+test('POST store fails with invalid data types', function () {
+    $invalidData = [
+        'title' => 'Rossz Adat',
+        'release_year' => 'nem-szám',
+        'rating' => 15.0, // Túl nagy
+    ];
+
+    $response = $this->postJson('/api/films', $invalidData);
+
+    $response->assertStatus(422);
+});
+
+test('POST store fails if rating is negative', function () {
+    $invalidData = Film::factory()->make(['rating' => -1.0])->toArray();
+
+    $response = $this->postJson('/api/films', $invalidData);
+
+    $response->assertStatus(422)
+             ->assertJsonValidationErrors(['rating']);
+});
+
+// ==========================================
 // 3. VÉGPONT: PUT/PATCH /api/films/{id} (Módosítás)
 // ==========================================
 
