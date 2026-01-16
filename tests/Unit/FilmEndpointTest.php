@@ -93,3 +93,72 @@ test('cannot update a film that does not exist', function () {
 
     $response->assertStatus(404);
 });
+
+// ==========================================
+// 3. VÉGPONT: GET /api/films/{id} (Show - Megtekintés)
+// ==========================================
+
+test('GET show returns a single film', function () {
+    $film = Film::factory()->create();
+
+    $response = $this->getJson("/api/films/{$film->id}");
+
+    $response->assertStatus(200)
+             ->assertJsonFragment(['id' => $film->id]);
+});
+
+test('GET show returns 404 for non-existent film', function () {
+    $response = $this->getJson("/api/films/999999");
+
+    $response->assertStatus(404);
+});
+
+test('GET show returns correct specific data', function () {
+    $film = Film::factory()->create(['director' => 'Spielberg']);
+
+    $response = $this->getJson("/api/films/{$film->id}");
+
+    $response->assertJsonPath('director', 'Spielberg');
+});
+
+test('GET show handles invalid ID format gracefully', function () {
+    $response = $this->getJson("/api/films/invalid-text-id");
+
+    $response->assertStatus(404);
+});
+
+// ==========================================
+// 4. VÉGPONT: DELETE /api/films/{id} (Destroy - Törlés)
+// ==========================================
+
+test('DELETE removes a film successfully', function () {
+    $film = Film::factory()->create();
+
+    $response = $this->deleteJson("/api/films/{$film->id}");
+
+    $response->assertStatus(204);
+    $this->assertDatabaseMissing('films', ['id' => $film->id]);
+});
+
+test('DELETE returns 404 if film not found', function () {
+    $response = $this->deleteJson("/api/films/88888");
+
+    $response->assertStatus(404);
+});
+
+test('DELETE only removes the specified film', function () {
+    $filmToDelete = Film::factory()->create();
+    $filmToKeep = Film::factory()->create();
+
+    $this->deleteJson("/api/films/{$filmToDelete->id}");
+
+    $this->assertDatabaseMissing('films', ['id' => $filmToDelete->id]);
+    $this->assertDatabaseHas('films', ['id' => $filmToKeep->id]);
+});
+
+test('DELETE is idempotent (double delete)', function () {
+    $film = Film::factory()->create();
+
+    $this->deleteJson("/api/films/{$film->id}")->assertStatus(204);
+    $this->deleteJson("/api/films/{$film->id}")->assertStatus(404);
+});
